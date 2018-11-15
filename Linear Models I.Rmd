@@ -63,7 +63,73 @@ fit %>%
 ```
 
 
-```{r}
+### Diagnostics
 
+Dataset, model
+
+```{r}
+  modelr::add_residuals(nyc_airbnb, fit) 
+```
+
+
+```{r}
+modelr::add_residuals(nyc_airbnb, fit) %>% 
+  ggplot(aes(x = boro, y = resid)) + geom_boxplot()
+
+modelr::add_residuals(nyc_airbnb, fit) %>% 
+  ggplot(aes(x = stars, y = resid)) + geom_point()
+
+nyc_airbnb %>% 
+  modelr::add_residuals(fit) %>% 
+    ggplot(aes(x = stars, y = resid)) + geom_point()
+
+```
+
+
+### Hypothesis Testing
+
+Testing an individual coeff: just read off the p-value
+
+```{r}
+fit %>%
+  broom::tidy()
+```
+
+
+Compare nested models
+
+```{r}
+fit_null = lm(price ~ stars + boro, data = nyc_airbnb)
+fit_alt = lm(price ~stars + boro + room_type, data = nyc_airbnb)
+
+anova(fit_null, fit_alt) %>% 
+  broom::tidy()
+```
+
+
+
+### Nesting data
+
+* interaction terms
+
+```{r}
+nyc_airbnb %>% 
+  lm(price ~ stars * boro + room_type * boro, data = .) %>% 
+  broom::tidy() %>% 
+  knitr::kable(digits = 3)
+```
+
+
+Nesting and then fitting
+
+```{r}
+nest_lm_res =
+  nyc_airbnb %>% 
+  group_by(boro) %>% 
+  nest() %>% 
+  mutate(models = map(data, ~lm(price ~ stars + room_type, data = .x)),
+         models = map(models, broom::tidy)) %>% 
+  select(-data) %>% 
+  unnest()
 ```
 
